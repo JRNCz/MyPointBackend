@@ -12,6 +12,7 @@ from postgres_copy import CopyManager
 
 
 
+
 class ClientManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
