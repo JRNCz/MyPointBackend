@@ -17,6 +17,152 @@ import mypointbusiness.models as models
 
 from django.db import connection
 
+
+def FirstTimeDatabaseConfig():
+    
+    query = """
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (0,'Tram, Streetcar, Light rail');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (1,'Subway, Metro');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (2,'Rail');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (3,'Bus');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (4,'Ferry');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (5, 'Cable tram');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (6, 'Aerial lift, suspended cable car');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (7, 'Funicular');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (8, 'Car Park');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (11, 'Trolleybus');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (12, 'Monorail');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (33,'Bus stop');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (22,'Rail station');
+    INSERT INTO FacilityType (facility_type_id,facility_type_name) VALUES (13,'Mobility Station');
+
+    -- FeedbackStructure 
+
+    SELECT * from stops WHERE stops.stop_name = 'Av. Aida';
+
+    INSERT INTO FeedbackCat(feedback_category, feedback_category_short,color_red,color_green,color_blue,imageurl) VALUES ('Quality of Service','QOS', 53,182,51,'qos.png');
+    INSERT INTO FeedbackCat(feedback_category, feedback_category_short,color_red,color_green,color_blue,imageurl) VALUES ('Security','SEC', 255,0,0, 'lock.png');
+    INSERT INTO FeedbackCat(feedback_category, feedback_category_short,color_red,color_green,color_blue,imageurl) VALUES ('Maintenance','MTN', 45,207,242, 'maintenance.png');
+    INSERT INTO FeedbackCat(feedback_category, feedback_category_short,color_red,color_green,color_blue,imageurl) VALUES ('General','GEN', 0,0,0,'');
+
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Occupation','OCP', 73,169,88, 'crowd.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Costumer-service','CS', 69,222,56, 'support.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Cleanliness','CLN', 107,255,149, 'cleaning.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Comfort','CMF', 187,255,202, 'sofa.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Service delay','SD', 172,254,195, 'clock.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Personal safety','PSF', 178,42,42, 'protection.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Belongings safety','BSF', 255,77,0, 'luggage.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Lightening','ILU', 255,230,0, 'lamp.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Driving','DRV', 255,168,0, 'hands.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Infrastructure state','INF', 0,56,255, 'infrastructure.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Road state','RoS', 77,116,255, 'road.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Obstacles','OBS', 133,152,255, 'barrier.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Accessibility','ACS', 173,206,255, 'import.png');
+    INSERT INTO FeedbackSubCat(feedback_subcategory, feedback_subcategory_short,color_red,color_green,color_blue,imageurl) VALUES ('Classification','CLA', 0,0,0,'');
+
+    -- Bus
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Quality of Service','Occupation');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Quality of Service','Costumer-service');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Quality of Service','Cleanliness');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Quality of Service','Comfort');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Quality of Service','Service delay');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Security','Personal safety');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Security','Belongings safety');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Security','Lightening');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Security','Driving');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Maintenance','Infrastructure state');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Maintenance','Road state');
+    INSERT INTO FeedbackStruct(facility_type_id,feedback_category,feedback_subcategory )VALUES (3,'Maintenance','Obstacles');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'Maintenance','Accessibility');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (3,'General','Classification');
+
+
+    -- Train
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Quality of Service','Occupation');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Quality of Service','Cleanliness');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Quality of Service','Comfort');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Quality of Service','Service delay');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Security','Personal safety');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Security','Belongings safety');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Security','Lightening');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Security','Driving');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Maintenance','Infrastructure state');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Maintenance','Road state');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'Maintenance','Accessibility');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (2,'General','Classification');
+
+    -- Mobility Station
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (13,'Quality of Service','Costumer-service');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (13,'Quality of Service','Cleanliness');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (13,'Quality of Service','Comfort');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (13,'Quality of Service','Service delay');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (13,'Security','Personal safety');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (13,'Security','Belongings safety');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (13,'Security','Lightening');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (13,'Maintenance','Infrastructure state');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (13,'Maintenance','Accessibility');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (13,'General','Classification');
+
+
+    -- Bus Stop
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Quality of Service','Occupation');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Quality of Service','Cleanliness');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Quality of Service','Comfort');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Quality of Service','Service delay');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Security','Personal safety');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Security','Belongings safety');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Security','Lightening');
+
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Maintenance','Infrastructure state');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Maintenance','Road state');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Maintenance','Obstacles');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (33,'Maintenance','Accessibility');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (33,'General','Classification');
+
+
+    -- Rail station
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (22,'Quality of Service','Occupation');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (22,'Quality of Service','Costumer-service');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (22,'Quality of Service','Cleanliness');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (22,'Quality of Service','Comfort');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (22,'Quality of Service','Service delay');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (22,'Security','Personal safety');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (22,'Security','Belongings safety');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (22,'Security','Lightening');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory) VALUES (22,'Maintenance','Infrastructure state');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (22,'Maintenance','Road state');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (22,'Maintenance','Obstacles');
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (22,'Maintenance','Accessibility');
+
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (22,'General','Classification');
+
+
+    -- Car Park
+    INSERT INTO FeedbackStruct (facility_type_id,feedback_category,feedback_subcategory)VALUES (8,'Quality of Service','Occupation');
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+    
 def insert_has_facilities():
     query = """
     INSERT INTO has_facilities(facility_id, facility_type_id)
@@ -67,7 +213,7 @@ class AgencyAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         urls = super().get_urls()
-        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs), path("initial_config/", self.initial_mobility_configuration)]
         return my_urls + urls
     
     def upload_csv(self,request):
@@ -141,6 +287,21 @@ class AgencyAdmin(admin.ModelAdmin):
             #print('the request is a post')
             try:
                 insert_has_facilities()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
                 return render(request, "admin/sucess.html")            
             except Exception as e:
                 print(f"An error occurred: {e}")

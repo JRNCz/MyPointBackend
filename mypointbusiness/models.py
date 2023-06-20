@@ -75,7 +75,6 @@ class Client(AbstractUser):
     class Meta:
         managed = True
         db_table = 'client'
-    
     objects = ClientManager()
 
 
@@ -93,6 +92,8 @@ class Agency(models.Model):
     class Meta:
         managed = True
         db_table = 'agency'
+        verbose_name_plural='Agencies'
+
 
     objects = CopyManager()
 
@@ -109,6 +110,8 @@ class Bus(models.Model):
     class Meta:
         managed = True
         db_table = 'bus'
+        verbose_name_plural='Buses'
+
     objects = CopyManager()
 
 @receiver(models.signals.post_save, sender=Bus)
@@ -172,6 +175,8 @@ class Facility(models.Model):
     class Meta:
         managed = True
         db_table = 'facility'
+        verbose_name_plural='Facilities'
+
     objects = CopyManager()
 
 
@@ -182,6 +187,8 @@ class Facilitytype(models.Model):
     class Meta:
         managed = True 
         db_table = 'facilitytype'
+        verbose_name_plural='Facility types'
+
     objects = CopyManager()
 
 
@@ -196,6 +203,8 @@ class FareAttributes(models.Model):
     class Meta:
         managed = True 
         db_table = 'fare_attributes'
+        verbose_name_plural='Fare attributes'
+
     objects = CopyManager()
 
 
@@ -299,6 +308,8 @@ class Frequencies(models.Model):
     class Meta:
         managed = True
         db_table = 'frequencies'
+        verbose_name_plural='frequencies'
+
     objects = CopyManager()
 
 
@@ -323,6 +334,8 @@ class HasFacilities(models.Model):
         managed = True
         db_table = 'has_facilities'
         unique_together = (('facility_type', 'facility'),)
+        verbose_name_plural='Has facilities'
+
     objects = CopyManager()
 
 
@@ -349,6 +362,8 @@ class Levels(models.Model):
     class Meta:
         managed = True
         db_table = 'levels'
+        verbose_name_plural='Levels'
+
     objects = CopyManager()
 
 
@@ -374,6 +389,8 @@ class Orders(models.Model):
     class Meta:
         managed = True
         db_table = 'orders'
+        verbose_name_plural='Orders'
+
     objects = CopyManager()
     
 @receiver(pre_save, sender=Orders)
@@ -401,6 +418,8 @@ class Pathways(models.Model):
     class Meta:
         managed = True
         db_table = 'pathways'
+        verbose_name_plural='Pathways'
+
     objects = CopyManager()
 
 
@@ -429,6 +448,8 @@ class Routes(models.Model):
     class Meta:
         managed = True
         db_table = 'routes'
+        verbose_name_plural='Routes'
+
     objects = CopyManager()
 
 
@@ -443,6 +464,8 @@ class Shapes(models.Model):
     class Meta:
         managed = True
         db_table = 'shapes'
+        verbose_name_plural='Shapes'
+
     objects = CopyManager()
 
 
@@ -472,6 +495,8 @@ class StopTimes(models.Model):
     class Meta:
         managed = True
         db_table = 'stop_times'
+        verbose_name_plural='Stop times'
+
     objects = CopyManager()
 
 
@@ -492,6 +517,8 @@ class Stops(models.Model):
     class Meta:
         managed = True
         db_table = 'stops'
+        verbose_name_plural='Stops'
+
     objects = CopyManager()
 
 @receiver(pre_save, sender=Stops)
@@ -511,6 +538,8 @@ class Transfers(models.Model):
     class Meta:
         managed = True
         db_table = 'transfers'
+        verbose_name_plural='transfers'
+
     objects = CopyManager()
 
 
@@ -526,6 +555,8 @@ class Translations(models.Model):
     class Meta:
         managed = True
         db_table = 'translations'
+        verbose_name_plural='translations'
+
 
     objects = CopyManager()
 
@@ -544,6 +575,7 @@ class Trips(models.Model):
     class Meta:
         managed = True
         db_table = 'trips'
+        verbose_name_plural='trips'
     objects = CopyManager()
 
 
