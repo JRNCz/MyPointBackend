@@ -4,114 +4,20 @@
     <h1>Upload the GTFS files</h1>
     <h3>Make sure the names of the files are correct</h3>
 
+    <hr>
     <p>
-        <button id="upload-all" type="button">Upload All</button>
+        <form id="form" action="." method="POST" enctype="multipart/form-data">
+            {{ form.as_p }}
+            {% csrf_token %}
+            <button type="submit">Upload </button>
+        </form>
     </p>
+</hr>
 
-    <hr>
-    <p>
-        <form id="form-agency" action="." method="POST" enctype="multipart/form-data">
-            {{ formagency.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload agency.txt</button>
-        </form>
-    </p>
-    <hr>
-    <p>
-        <form id="form-stops" action="." method="POST" enctype="multipart/form-data">
-            {{ formstops.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload stops.txt</button>
-        </form>
-    </p>
-    <hr><p>
-        <form action="." method="POST" enctype="multipart/form-data">
-            {{ formstops.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload stops.txt</button>
-        </form>
-        </p></hr>
-        <hr><p>
-        <form action="." method="POST" enctype="multipart/form-data">
-            {{ formcalendar_dates.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload calendar_dates.txt</button>
-        </form>
-        </p></hr>
-        <hr><p>
-        <form action="." method="POST" enctype="multipart/form-data">
-            {{ formroutes.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload routes.txt</button>
-        </form>
-        </p></hr>
-        <hr><p>
-        <form action="." method="POST" enctype="multipart/form-data">
-            {{ formtrips.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload trips.txt</button>
-        </form>
-        </p></hr>
-        <hr><p>
-        <form action="." method="POST" enctype="multipart/form-data">
-            {{ formshapes.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload shapes.txt</button>
-        </form>
-        </p></hr>
-        <hr><p>
-        <form action="." method="POST" enctype="multipart/form-data">
-            {{ formstop_times.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload stop_times.txt</button>
-        </form>
-        </p></hr>
-        <hr><p>
-        <form action="." method="POST" enctype="multipart/form-data">
-            {{ formfrequencies.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload frequencies.txt</button>
-        </form>
-        </p></hr>
-        <hr><p>
-        <form action="." method="POST" enctype="multipart/form-data">
-            {{ formfeed_info.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload feed_info.txt</button>
-        </form>
-        </p></hr>
-        <hr><p>
-        <form action="." method="POST" enctype="multipart/form-data">
-            {{ formfare_atributtes.as_p }}
-            {% csrf_token %}
-            <button type="submit">Upload fare_attributes.txt</button>
-        </form>
-        </p></hr>
-        <hr><p>
-        <form action="." method="POST" enctype="multipart/form-data">
-            {{ form_bus.as_p }}
-            {% csrf_token %}
-            <button type="submit">MobiCascais buses</button>
-        </form>
-        </p></hr>
 
 </div>
 
-<script>
-    document.getElementById('upload-all').addEventListener('click', function() {
-        document.getElementById('form-agency').submit();
-        document.getElementById('form-stops').submit();
-        document.getElementById('form-calendar-dates').submit();
-        document.getElementById('form-routes').submit();
-        document.getElementById('form-trips').submit();
-        document.getElementById('form-shapes').submit();
-        document.getElementById('form-stop-times').submit();
-        document.getElementById('form-frequencies').submit();
-        document.getElementById('form-feed-info').submit();
-        document.getElementById('form-fare-attributes').submit();
-        document.getElementById('form-bus').submit();
-    });
-</script>
+
 
 {% endblock %}
 

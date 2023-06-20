@@ -8,10 +8,32 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
+from django.dispatch import receiver
+from django.db.models.signals import pre_save
+
 from postgres_copy import CopyManager
 
+from django.db import connection
 
+def insert_has_facilities():
+    query = """
+    INSERT INTO has_facilities(facility_id, facility_type_id)
+    SELECT DISTINCT s.stop_id, r.route_type*11
+    FROM stops s 
+    INNER JOIN stop_times st ON s.stop_id = st.stop_id
+    INNER JOIN trips t ON t.trip_id = st.trip_id 
+    INNER JOIN routes r ON t.route_id = r.route_id
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM has_facilities hf
+        WHERE hf.facility_id = s.stop_id
+        AND hf.facility_type_id = r.route_type
+    );
+    """
 
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        
 
 class ClientManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
@@ -87,8 +109,17 @@ class Bus(models.Model):
     class Meta:
         managed = True
         db_table = 'bus'
+    objects = CopyManager()
 
+@receiver(models.signals.post_save, sender=Bus)
+def bus_trigger(sender, instance, created, **kwargs):
+    if created:
+        # Insert into the 'facility' table
+        Facility.objects.create(facility_id=instance.facility_id)
 
+        # Insert into the 'has_facilities' table
+        HasFacilities.objects.create(facility_id=instance.facility_id, facility_type_id=3)
+        
 class Calendar(models.Model):
     service_id = models.TextField(primary_key=True)
     monday = models.BooleanField()
@@ -104,6 +135,7 @@ class Calendar(models.Model):
     class Meta:
         managed = True
         db_table = 'calendar'
+    objects = CopyManager()
 
 
 class CalendarDates(models.Model):
@@ -115,6 +147,7 @@ class CalendarDates(models.Model):
     class Meta:
         managed = True
         db_table = 'calendar_dates'
+    objects = CopyManager()
 
 
 class Carpark(models.Model):
@@ -127,6 +160,7 @@ class Carpark(models.Model):
     class Meta:
         managed = True
         db_table = 'carpark'
+    objects = CopyManager()
 
 
 
@@ -138,6 +172,7 @@ class Facility(models.Model):
     class Meta:
         managed = True
         db_table = 'facility'
+    objects = CopyManager()
 
 
 class Facilitytype(models.Model):
@@ -147,6 +182,7 @@ class Facilitytype(models.Model):
     class Meta:
         managed = True 
         db_table = 'facilitytype'
+    objects = CopyManager()
 
 
 class FareAttributes(models.Model):
@@ -160,6 +196,7 @@ class FareAttributes(models.Model):
     class Meta:
         managed = True 
         db_table = 'fare_attributes'
+    objects = CopyManager()
 
 
 class FareRules(models.Model):
@@ -172,6 +209,7 @@ class FareRules(models.Model):
     class Meta:
         managed = True 
         db_table = 'fare_rules'
+    objects = CopyManager()
 
 
 class FeedInfo(models.Model):
@@ -187,6 +225,7 @@ class FeedInfo(models.Model):
     class Meta:
         managed = True
         db_table = 'feed_info'
+    objects = CopyManager()
 
 
 class Feedback(models.Model):
@@ -205,6 +244,7 @@ class Feedback(models.Model):
         managed = True
         db_table = 'feedback'
         unique_together = (('feedback_id', 'facility'),)
+    objects = CopyManager()
 
 
 class Feedbackcat(models.Model):
@@ -218,6 +258,7 @@ class Feedbackcat(models.Model):
     class Meta:
         managed = True
         db_table = 'feedbackcat'
+    objects = CopyManager()
 
 
 class Feedbackstruct(models.Model):
@@ -230,6 +271,7 @@ class Feedbackstruct(models.Model):
         managed = True
         db_table = 'feedbackstruct'
         unique_together = (('facility_type', 'feedback_category', 'feedback_subcategory'),)
+    objects = CopyManager()
 
 
 class Feedbacksubcat(models.Model):
@@ -243,6 +285,7 @@ class Feedbacksubcat(models.Model):
     class Meta:
         managed = True
         db_table = 'feedbacksubcat'
+    objects = CopyManager()
 
 
 class Frequencies(models.Model):
@@ -256,6 +299,7 @@ class Frequencies(models.Model):
     class Meta:
         managed = True
         db_table = 'frequencies'
+    objects = CopyManager()
 
 
 class GiveFeedback(models.Model):
@@ -267,6 +311,7 @@ class GiveFeedback(models.Model):
     class Meta:
         managed = True
         db_table = 'give_feedback'
+    objects = CopyManager()
 
 
 class HasFacilities(models.Model):
@@ -278,6 +323,7 @@ class HasFacilities(models.Model):
         managed = True
         db_table = 'has_facilities'
         unique_together = (('facility_type', 'facility'),)
+    objects = CopyManager()
 
 
 class Item(models.Model):
@@ -292,6 +338,7 @@ class Item(models.Model):
         managed = True
         db_table = 'item'
         unique_together = (('item_id', 'shop'),)
+    objects = CopyManager()
 
 
 class Levels(models.Model):
@@ -302,6 +349,7 @@ class Levels(models.Model):
     class Meta:
         managed = True
         db_table = 'levels'
+    objects = CopyManager()
 
 
 class Mobilitystation(models.Model):
@@ -313,6 +361,7 @@ class Mobilitystation(models.Model):
     class Meta:
         managed = True
         db_table = 'mobilitystation'
+    objects = CopyManager()
 
 
 class Orders(models.Model):
@@ -325,6 +374,14 @@ class Orders(models.Model):
     class Meta:
         managed = True
         db_table = 'orders'
+    objects = CopyManager()
+    
+@receiver(pre_save, sender=Orders)
+def orders_trigger(sender, instance, **kwargs):
+    if Item.objects.filter(item_id=instance.item_id, quantity=instance.quantity).exists():
+        raise Exception('THE REQUESTED SHOP HAS NO STOCK')
+    else:
+        Item.objects.filter(item_id=instance.item_id).update(quantity=models.F('quantity') - instance.quantity)
 
 
 class Pathways(models.Model):
@@ -344,6 +401,7 @@ class Pathways(models.Model):
     class Meta:
         managed = True
         db_table = 'pathways'
+    objects = CopyManager()
 
 
 class Rail(models.Model):
@@ -355,6 +413,7 @@ class Rail(models.Model):
         managed = True
         db_table = 'rail'
 
+    objects = CopyManager()
 
 class Routes(models.Model):
     route_id = models.TextField(primary_key=True)
@@ -370,6 +429,7 @@ class Routes(models.Model):
     class Meta:
         managed = True
         db_table = 'routes'
+    objects = CopyManager()
 
 
 class Shapes(models.Model):
@@ -383,6 +443,7 @@ class Shapes(models.Model):
     class Meta:
         managed = True
         db_table = 'shapes'
+    objects = CopyManager()
 
 
 class Shop(models.Model):
@@ -392,6 +453,7 @@ class Shop(models.Model):
     class Meta:
         managed = True
         db_table = 'shop'
+    objects = CopyManager()
 
 
 class StopTimes(models.Model):
@@ -410,6 +472,7 @@ class StopTimes(models.Model):
     class Meta:
         managed = True
         db_table = 'stop_times'
+    objects = CopyManager()
 
 
 class Stops(models.Model):
@@ -429,7 +492,14 @@ class Stops(models.Model):
     class Meta:
         managed = True
         db_table = 'stops'
+    objects = CopyManager()
 
+@receiver(pre_save, sender=Stops)
+def stop_trigger(sender, instance, **kwargs):
+    if not instance.pk:  # Only execute on insert, not on update
+        # Insert into the 'facility' table
+        Facility.objects.create(facility_id=instance.stop_id)
+        
 
 class Transfers(models.Model):
     from_stop = models.ForeignKey(Stops, models.DO_NOTHING, related_name = 'transfers_from_stop')
@@ -441,6 +511,7 @@ class Transfers(models.Model):
     class Meta:
         managed = True
         db_table = 'transfers'
+    objects = CopyManager()
 
 
 class Translations(models.Model):
@@ -456,6 +527,7 @@ class Translations(models.Model):
         managed = True
         db_table = 'translations'
 
+    objects = CopyManager()
 
 class Trips(models.Model):
     route = models.ForeignKey(Routes, models.DO_NOTHING)
@@ -472,6 +544,7 @@ class Trips(models.Model):
     class Meta:
         managed = True
         db_table = 'trips'
+    objects = CopyManager()
 
 
 class ValidateFeedback(models.Model):
@@ -485,3 +558,4 @@ class ValidateFeedback(models.Model):
         managed = True
         db_table = 'validate_feedback'
         unique_together = (('user', 'feedback'),)
+    objects = CopyManager()

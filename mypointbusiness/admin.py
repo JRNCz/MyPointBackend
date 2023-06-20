@@ -1,16 +1,42 @@
 import csv
 from datetime import  datetime
+import decimal
+import math
 import os
 import random
+import traceback
 from django.contrib import admin
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import path 
 from django import forms
+import numpy as np
 import pandas as pd 
 from .models import *
 import mypointbusiness.models as models
 
+from django.db import connection
+
+def insert_has_facilities():
+    query = """
+    INSERT INTO has_facilities(facility_id, facility_type_id)
+    SELECT DISTINCT s.stop_id, r.route_type*11
+    FROM stops s 
+    INNER JOIN stop_times st ON s.stop_id = st.stop_id
+    INNER JOIN trips t ON t.trip_id = st.trip_id 
+    INNER JOIN routes r ON t.route_id = r.route_id
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM has_facilities hf
+        WHERE hf.facility_id = s.stop_id
+        AND hf.facility_type_id = r.route_type
+    );
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+
+        
 class CsvImportForm(forms.Form):
     csv_upload = forms.FileField()
     
@@ -38,80 +64,94 @@ class AgencyAdmin(admin.ModelAdmin):
         filename = 'agency.csv'
         return export_to_csv(self, request, queryset, fields, filename)
     
-    def get_urls5(self):
-        urls = super().get_urls()
-        my_urls = [path("upload-csv/", self.upload_csv)]
-        return my_urls + urls
 
     def get_urls(self):
         urls = super().get_urls()
-        my_urls = [path("delete-gtfs/", self.delete_gtfs)]
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
     
     def upload_csv(self,request):
         if request.method == 'POST':
-            print('the request is a post')
+            #print('the request is a post')
             try:
                 csv_file = request.FILES['csv_upload']
+                result = normalizeGTFS(csv_file)
+                
+                if ( result == True):
+                    
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
 
-                normalizeGTFS(csv_file)
-                return HttpResponse("CSV file uploaded successfully!")
+                
             except Exception as e:
                 print(f"An error occurred: {e}")
-                return HttpResponse("Error")
+                return render(request, "admin/error.html") 
 
-                
 
-                                               
-            # file_data = csv_file.read().decode("utf-8")
-            # # split by line
-            # csv_data = file_data.split("\n")
-            # # for each line spilleted by , 
-            # for x in csv_data:
-            #     fields = x.split(",")
-            #     print(fields[0])
-            #     print(fields[1])
-                
         if request.method == 'GET':
            
-            formagency = CsvImportForm()
-            formstops = CsvImportForm()
-            formcalendar_dates = CsvImportForm()
-            formcalendar = CsvImportForm()
-            formroutes = CsvImportForm()
-            formtrips = CsvImportForm()
-            formshapes = CsvImportForm()
-            formstops = CsvImportForm()
-            formstop_times = CsvImportForm()
-            formfrequencies= CsvImportForm()
-            formfeed_info = CsvImportForm()
-            formfare_atributtes = CsvImportForm()
-            form_bus = CsvImportForm()
+            forma= CsvImportForm()
+
 
             data ={
-                "formagency": formagency,
-                "formstops": formstops,
-                "formcalendar_dates": formcalendar_dates,
-                "formcalendar": formcalendar,
-                "formroutes": formroutes,
-                "formtrips": formtrips,
-                "formshapes": formshapes,
-                "formstop_times": formstop_times,
-                "formfrequencies": formfrequencies,
-                "formfeed_info": formfeed_info,
-                "formfare_atributtes": formfare_atributtes,
-                "form_bus": form_bus
+                "form": forma,
+
             }
             return render(request, "admin/uploadfile.html",data)
     
     def delete_gtfs(self,request):
         
             if request.method == 'POST':
-                print('a')
-                    
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    Frequencies.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
             if request.method == 'GET':
 
                 return render(request, "admin/deletefiles.html")
+    
+    def update_gtfs(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                insert_has_facilities()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+    
+            
         
     export_agencyCSV.short_description = 'Export to CSV'
     actions = [export_agencyCSV]
@@ -123,6 +163,7 @@ class ClientAdmin(admin.ModelAdmin):
         fields = ['username', 'points', 'password', 'last_login', 'id', 'email', 'reputation', 'level']
         filename = 'clients.csv'
         return export_to_csv(self, request, queryset, fields, filename)
+    
     
     export_clientsCSV.short_description = 'Export to CSV'
     actions = [export_clientsCSV]
@@ -198,6 +239,88 @@ class BusAdmin(admin.ModelAdmin):
         filename = 'buses.csv'
         return export_to_csv(self, request, queryset, fields, filename)
 
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+    
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
     export_busCSV.short_description = 'Export to CSV'
     actions = [export_busCSV]
 
@@ -209,6 +332,90 @@ class CalendarAdmin(admin.ModelAdmin):
         fields = ['service_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'start_date', 'end_date']
         filename = 'calendars.csv'
         return export_to_csv(self, request, queryset, fields, filename)
+    
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
 
     export_calendarCSV.short_description = 'Export to CSV'
     actions = [export_calendarCSV]
@@ -222,6 +429,91 @@ class CalendarDatesAdmin(admin.ModelAdmin):
         filename = 'calendar_dates.csv'
         return export_to_csv(self, request, queryset, fields, filename)
 
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
+
     export_calendar_datesCSV.short_description = 'Export to CSV'
     actions = [export_calendar_datesCSV]
 
@@ -233,6 +525,90 @@ class CarparkAdmin(admin.ModelAdmin):
         fields = ['name', 'facility', 'park_lat', 'park_lon', 'parking_time']
         filename = 'carparks.csv'
         return export_to_csv(self, request, queryset, fields, filename)
+    
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
 
     export_carparkCSV.short_description = 'Export to CSV'
     actions = [export_carparkCSV]
@@ -245,7 +621,8 @@ class FacilityAdmin(admin.ModelAdmin):
         fields = ['facility_id']
         filename = 'facilities.csv'
         return export_to_csv(self, request, queryset, fields, filename)
-
+    
+ 
     export_facilityCSV.short_description = 'Export to CSV'
     actions = [export_facilityCSV]
 
@@ -269,6 +646,90 @@ class FareAttributesAdmin(admin.ModelAdmin):
         fields = ['fare_id', 'price', 'currency_type', 'payment_method', 'transfers', 'transfer_duration']
         filename = 'fare_attributes.csv'
         return export_to_csv(self, request, queryset, fields, filename)
+    
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
 
     export_fare_attributesCSV.short_description = 'Export to CSV'
     actions = [export_fare_attributesCSV]
@@ -281,6 +742,90 @@ class FareRulesAdmin(admin.ModelAdmin):
         fields = ['fare', 'route', 'origin_id', 'destination_id', 'contains_id']
         filename = 'fare_rules.csv'
         return export_to_csv(self, request, queryset, fields, filename)
+    
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
 
     export_fare_rulesCSV.short_description = 'Export to CSV'
     actions = [export_fare_rulesCSV]
@@ -293,53 +838,188 @@ class FeedInfoAdmin(admin.ModelAdmin):
         fields = ['feed_publisher_name', 'feed_publisher_url', 'feed_lang', 'feed_start_date', 'feed_end_date', 'feed_version', 'feed_contact_email', 'feed_contact_url']
         filename = 'feed_info.csv'
         return export_to_csv(self, request, queryset, fields, filename)
+    
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
 
     export_feed_infoCSV.short_description = 'Export to CSV'
     actions = [export_feed_infoCSV]
 
 
-class FeedbackcatAdmin(admin.ModelAdmin):
-    list_display = ('feedback_category', 'feedback_category_short', 'color_red', 'color_blue', 'color_green', 'imageurl')
-
-    def export_feedbackcatCSV(self, request, queryset):
-        fields = ['feedback_category', 'feedback_category_short', 'color_red', 'color_blue', 'color_green', 'imageurl']
-        filename = 'feedback_categories.csv'
-        return export_to_csv(self, request, queryset, fields, filename)
-
-    export_feedbackcatCSV.short_description = 'Export to CSV'
-    actions = [export_feedbackcatCSV]
-class FeedbackstructAdmin(admin.ModelAdmin):
-    list_display = ('feedback_struct_id', 'facility_type', 'feedback_category', 'feedback_subcategory')
-
-    def export_feedbackstructCSV(self, request, queryset):
-        fields = ['feedback_struct_id', 'facility_type', 'feedback_category', 'feedback_subcategory']
-        filename = 'feedback_structs.csv'
-        return export_to_csv(self, request, queryset, fields, filename)
-
-    export_feedbackstructCSV.short_description = 'Export to CSV'
-    actions = [export_feedbackstructCSV]
-
-
-class FeedbacksubcatAdmin(admin.ModelAdmin):
-    list_display = ('feedback_subcategory', 'feedback_subcategory_short', 'color_red', 'color_blue', 'color_green', 'imageurl')
-
-    def export_feedbacksubcatCSV(self, request, queryset):
-        fields = ['feedback_subcategory', 'feedback_subcategory_short', 'color_red', 'color_blue', 'color_green', 'imageurl']
-        filename = 'feedback_subcategories.csv'
-        return export_to_csv(self, request, queryset, fields, filename)
-
-    export_feedbacksubcatCSV.short_description = 'Export to CSV'
-    actions = [export_feedbacksubcatCSV]
-
-
 class FrequenciesAdmin(admin.ModelAdmin):
+    
     list_display = ('trip', 'start_time', 'end_time', 'headway_secs', 'exact_times', 'frequency_id')
 
     def export_frequenciesCSV(self, request, queryset):
         fields = ['trip', 'start_time', 'end_time', 'headway_secs', 'exact_times', 'frequency_id']
         filename = 'frequencies.csv'
         return export_to_csv(self, request, queryset, fields, filename)
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
 
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
     export_frequenciesCSV.short_description = 'Export to CSV'
     actions = [export_frequenciesCSV]
 
@@ -423,6 +1103,92 @@ class PathwaysAdmin(admin.ModelAdmin):
         fields = ['pathway_id', 'from_stop', 'to_stop', 'pathway_mode', 'is_bidirectional', 'length', 'traversal_time', 'stair_count', 'max_slope', 'min_width', 'signposted_as', 'reversed_signposted_as']
         filename = 'pathways.csv'
         return export_to_csv(self, request, queryset, fields, filename)
+    
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
+            
 
     export_pathwaysCSV.short_description = 'Export to CSV'
     actions = [export_pathwaysCSV]
@@ -435,6 +1201,91 @@ class RailAdmin(admin.ModelAdmin):
         filename = 'rails.csv'
         return export_to_csv(self, request, queryset, fields, filename)
 
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
+            
     export_railCSV.short_description = 'Export to CSV'
     actions = [export_railCSV]
 
@@ -447,6 +1298,91 @@ class RoutesAdmin(admin.ModelAdmin):
         filename = 'routes.csv'
         return export_to_csv(self, request, queryset, fields, filename)
 
+
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
+            
     export_routesCSV.short_description = 'Export to CSV'
     actions = [export_routesCSV]
 
@@ -459,20 +1395,95 @@ class ShapesAdmin(admin.ModelAdmin):
         filename = 'shapes.csv'
         return export_to_csv(self, request, queryset, fields, filename)
 
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
+            
     export_shapesCSV.short_description = 'Export to CSV'
     actions = [export_shapesCSV]
 
 
-class ShopAdmin(admin.ModelAdmin):
-    list_display = ('name', 'shop_id')
-
-    def export_shopCSV(self, request, queryset):
-        fields = ['name', 'shop_id']
-        filename = 'shops.csv'
-        return export_to_csv(self, request, queryset, fields, filename)
-
-    export_shopCSV.short_description = 'Export to CSV'
-    actions = [export_shopCSV]
 
 
 class StopTimesAdmin(admin.ModelAdmin):
@@ -483,6 +1494,90 @@ class StopTimesAdmin(admin.ModelAdmin):
         filename = 'stop_times.csv'
         return export_to_csv(self, request, queryset, fields, filename)
 
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
+            
     export_stop_timesCSV.short_description = 'Export to CSV'
     actions = [export_stop_timesCSV]
 
@@ -494,6 +1589,88 @@ class StopsAdmin(admin.ModelAdmin):
         fields = ['stop', 'stop_code', 'stop_name', 'stop_desc', 'stop_lat', 'stop_lon', 'zone_id', 'stop_url', 'location_type', 'parent_station', 'stop_timezone', 'wheelchair_boarding']
         filename = 'stops.csv'
         return export_to_csv(self, request, queryset, fields, filename)
+
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
 
     export_stopsCSV.short_description = 'Export to CSV'
     actions = [export_stopsCSV]
@@ -507,6 +1684,90 @@ class TransfersAdmin(admin.ModelAdmin):
         filename = 'transfers.csv'
         return export_to_csv(self, request, queryset, fields, filename)
 
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+
     export_transfersCSV.short_description = 'Export to CSV'
     actions = [export_transfersCSV]
 
@@ -519,6 +1780,90 @@ class TranslationsAdmin(admin.ModelAdmin):
         filename = 'translations.csv'
         return export_to_csv(self, request, queryset, fields, filename)
 
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+
+            
     export_translationsCSV.short_description = 'Export to CSV'
     actions = [export_translationsCSV]
 
@@ -531,6 +1876,90 @@ class TripsAdmin(admin.ModelAdmin):
         filename = 'trips.csv'
         return export_to_csv(self, request, queryset, fields, filename)
 
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
+        return my_urls + urls
+    
+    def upload_csv(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                csv_file = request.FILES['csv_upload']
+
+                result = normalizeGTFS(csv_file)
+                if ( result == True):
+                    return render(request, "admin/sucess.html")
+                else:
+                    return render(request, "admin/error.html") 
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+           
+            forma= CsvImportForm()
+
+
+            data ={
+                "form": forma,
+
+            }
+            return render(request, "admin/uploadfile.html",data)
+    
+    def delete_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    #print('a')
+                    HasFacilities.objects.all().delete()
+                    Mobilitystation.objects.all().delete()
+                    Bus.objects.all().delete()
+                    Rail.objects.all().delete()
+                    Carpark.objects.all().delete()
+                    FareAttributes.objects.all().delete()
+                    FeedInfo.objects.all().delete()
+                    StopTimes.objects.all().delete()
+                    Stops.objects.all().delete()
+                    Shapes.objects.all().delete()
+                    Trips.objects.all().delete()
+                    Routes.objects.all().delete()
+                    Calendar.objects.all().delete()
+                    CalendarDates.objects.all().delete()
+                    Agency.objects.all().delete()
+                    GiveFeedback.objects.all().delete()
+                    ValidateFeedback.objects.all().delete()
+                    Feedback.objects.all().delete()
+                    Facility.objects.all().delete()
+                    return render(request, "admin/sucess.html")
+
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+    def update_gtfs(self,request):
+        
+            if request.method == 'POST':
+                try:
+                    insert_has_facilities()
+                    return render(request, "admin/sucess.html")
+
+                except:
+                    traceback.print_exc()
+
+              
+            if request.method == 'GET':
+
+                return render(request, "admin/deletefiles.html")
+            
+            
     export_tripsCSV.short_description = 'Export to CSV'
     actions = [export_tripsCSV]
 
@@ -542,7 +1971,7 @@ class ValidateFeedbackAdmin(admin.ModelAdmin):
         fields = ['validate_feedback_id', 'feedback', 'facility_id', 'user', 'is_true']
         filename = 'validate_feedback.csv'
         return export_to_csv(self, request, queryset, fields, filename)
-
+    
     export_validate_feedbackCSV.short_description = 'Export to CSV'
     actions = [export_validate_feedbackCSV]
 
@@ -568,6 +1997,7 @@ admin.site.register(FeedInfo, FeedInfoAdmin)
 admin.site.register(Frequencies, FrequenciesAdmin)
 admin.site.register(GiveFeedback, GiveFeedbackAdmin)
 admin.site.register(HasFacilities, HasFacilitiesAdmin)
+
 admin.site.register(Item, ItemAdmin)
 admin.site.register(Levels, LevelsAdmin)
 admin.site.register(Mobilitystation, MobilityStationAdmin)
@@ -593,7 +2023,7 @@ calendar_attributes = ["service_id", "monday", "tuesday", "wednesday", "thursday
 calendar_dates_attributes = ["service_id", "date", "exception_type"]
 fare_attributes_attributes = ["fare_id", "price", "currency_type", "payment_method", "transfers", "transfer_duration"]
 fare_rules_attributes = ["fare_id", "route_id", "origin_id", "destination_id", "contains_id"]
-shapes_attributes = ["shape_id", "shape_pt_lat", "shape_pt_locsn", "shape_pt_sequence", "shape_dist_traveled"]
+shapes_attributes = ["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence", "shape_dist_traveled"]
 frequencies_attributes = ['trip_id','start_time','end_time','headway_secs','exact_times']
 transfers_attributes = ['from_stop_id','to_stop_id','transfer_type','min_transfer_time']
 pathways_attributes = ['pathway_id','from_stop_id','to_stop_id','pathway_mode','is_bidirectional','length','traversal_time','stair_count','max_slope','min_width','signposted_as','reversed_signposted_as']
@@ -646,44 +2076,80 @@ def generate_random_id(length):
         carpark += random.choice(digits)
     return carpark        
 
+# --COPY agency (agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url,agency_email) FROM 'C:/data/GTFS/NewFiles/agency.txt' (FORMAT CSV, HEADER);
+# --COPY calendar_dates (service_id,date,exception_type) FROM 'C:/data/GTFS/NewFiles/calendar_dates.txt' (FORMAT CSV, HEADER);
+# --COPY calendar(service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday, start_date, end_date) FROM 'C:/data/GTFS/NewFiles/calendar.txt' (FORMAT CSV, HEADER);
+# --COPY routes (route_id, agency_id, route_short_name, route_long_name, route_desc, route_type, route_url, route_color, route_text_color)FROM 'C:/data/GTFS/NewFiles/routes.txt' (FORMAT CSV, HEADER);
+# --COPY trips (route_id, service_id, trip_id, trip_headsign, direction_id, block_id, shape_id, trip_short_name, wheelchair_accessible, bikes_allowed)FROM 'C:/data/GTFS/NewFiles/trips.txt' (FORMAT CSV, HEADER);
+# --COPY shapes (shape_id, shape_pt_lat, shape_pt_lon, shape_pt_sequence, shape_dist_traveled) FROM 'C:/data/GTFS/NewFiles/shapes.txt' (FORMAT CSV, HEADER);
+# --COPY stops (stop_id, stop_code, stop_name, stop_desc, stop_lat, stop_lon, zone_id, stop_url, location_type, parent_station, stop_timezone, wheelchair_boarding) FROM 'C:/data/GTFS/NewFiles/stops.txt' (FORMAT CSV, HEADER);
+# --COPY stop_times (trip_id,arrival_time,departure_time,stop_id,stop_sequence,stop_headsign ,pickup_type  ,drop_off_type,shape_dist_traveled,timepoint)FROM 'C:/data/GTFS/NewFiles/stop_times.txt' (FORMAT CSV, HEADER);
+# --COPY frequencies (trip_id,start_time,end_time,headway_secs,exact_times) FROM 'C:/data/GTFS/NewFiles/frequencies.txt' (FORMAT CSV, HEADER);
+
 # Normalizes a File. Removes columns that are not within the data model + Adds columns that should be in the dataset with empty values
 def normalizeFile(file,attributes,Table):
     try:
     # Read a file in CSV format ; Assumes that all values are string so it wont change integers to floats, dates ect...
         data = pd.read_csv(file) 
         list_of_column_names = list(data.columns)
-        #print(list_of_column_names)           
+        ##print(list_of_column_names)           
         # Take the columns that are not in the model
         data=RemoveColumns(list_of_column_names,data,attributes)
         # Add columns that are on the data model but are not on the dataset
         data=AddColumns(list_of_column_names,data,attributes)
-        #print('\n Final Result : \n')
-        #print(data)
+        ##print('\n Final Result : \n')
+        ##print(data)
         data = data.reindex(columns=attributes)
-        print(data)
-        current_directory = os.path.dirname(os.path.abspath(__file__))
+        #print(data)
+        # Iterate over each row in the DataFrame
+        for _, row in data.iterrows():
+        # Create an instance of the model
+            model_instance = Table()
+
+
+            # Convert value to Decimal if it's a numpy.int64
+
+            for attribute in attributes:
+                value = row[attribute]
+                if isinstance(value, np.int64):
+                    value = decimal.Decimal(value.item())
+                if(str(value) == "nan"):
+                    value=None
+                if(str(value) == ""):
+                    value=None
+
+                setattr(model_instance, attribute, value)
+                
+
+            # Save the model instance to the database
+            model_instance.save()
         
-        now =datetime.now()
-        date_time = now.strftime("%m-%d-%Y_%H-%M-%S")
-        print(date_time)
-        print(current_directory)
-        print(Table._meta.model_name)
-        print(type(current_directory))
-        print(type(Table._meta.model_name))
-        filename = Table._meta.model_name+date_time
+        # current_directory = os.path.dirname(os.path.abspath(__file__))
+        
+        # now =datetime.now()
+        # date_time = now.strftime("%m-%d-%Y_%H-%M-%S")
+        # #print(date_time)
+        # #print(current_directory)
+        # #print(Table._meta.model_name)
+        # #print(type(current_directory))
+        # #print(type(Table._meta.model_name))
+        # filename = Table._meta.model_name+date_time
 
-        csvfile = data.to_csv("temporaryfiles/normalizedInputs/"+filename,index=False)
-
-        insert_count = Table.objects.from_csv("temporaryfiles/normalizedInputs/example.csv")
-        print("{} records inserted".format(insert_count))
-
+        # csvfile = data.to_csv("temporaryfiles/normalizedInputs/"+filename+".txt",index=False, encoding='cp1252' )
+        # print("temporaryfiles/normalizedInputs/"+filename)
+        # insert_count = Table.objects.from_csv("temporaryfiles/normalizedInputs/"+filename+".txt")
+        # print("{} records inserted".format(insert_count))
+        return True
 
     except Exception as e:
         print(f"An error occurred NormalizeFile: {e}")
+        traceback.print_exc()
+        return False
     
 
 def normalizeGTFS(file):
     filename = str(file)
+    print('AAAAAAAA'+filename)
     try:
         if filename == 'agency.txt':
             attributes = agency_attributes
@@ -736,8 +2202,9 @@ def normalizeGTFS(file):
 
         else:
             print('Invalid filename->', filename)
-            return
+            return False
 
-        normalizeFile(file,attributes,table)
+        value = normalizeFile(file,attributes,table)
+        return value
     except Exception as e:
         print(f"An error occurred: {e}")

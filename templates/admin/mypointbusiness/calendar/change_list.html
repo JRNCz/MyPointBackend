@@ -1,0 +1,16 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+{% block content %}
+<div>
+    <p class="link-container">
+        <a href="upload-csv/">Import GTFS</a>
+    </p>
+    <p class="link-container">
+        <a href="delete-gtfs/">Delete all GTFS data</a>
+    </p>
+    <p class="link-container">
+        <a href="update-gtfs/">After performing all the GTFS imports run this script</a>
+    </p>
+</div>
+{{ block.super }}
+{% endblock %}
