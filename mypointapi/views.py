@@ -1,57 +1,20 @@
 
-import datetime
+from datetime import datetime, timedelta
 import random
 import string
 import traceback
+from django.db import connection
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.views import Response 
 from rest_framework import status
-from mypointapi.serializer import FeedbackstructSerializer
-from mypointapi.serializer import CategoriesInfoSerializer
-from mypointapi.serializer import FeedbackcatSerializer
-from mypointapi.serializer import FeedbacksubcatSerializer
-from mypointapi.serializer import CarParkSerializer
-from mypointapi.serializer import CarParkFeedbackSerializer
-from mypointapi.serializer import AccoutgetPointsSerializer
-from mypointapi.serializer import OrderSerializer
-from mypointbusiness.models import Orders
-from mypointbusiness.models import Carpark
-from mypointbusiness.models import Feedbacksubcat
-from mypointbusiness.models import Feedbackcat
-from mypointbusiness.models import Feedbackstruct
-from mypointbusiness.models import Feedback
-from mypointbusiness.models import Client 
-from mypointbusiness.models import Facility
-from mypointbusiness.models import Stops
-from mypointbusiness.models import Shop 
-from mypointbusiness.models import Bus 
-from mypointbusiness.models import Routes
-from mypointbusiness.models import Item
-from mypointbusiness.models import Rail
-from mypointbusiness.models import Facilitytype
+from mypointapi.serializer import *
+from django.db.models import Avg
+
+from mypointbusiness.models import *
+
 from rest_framework_simplejwt.tokens import AccessToken
 
-from mypointbusiness.models import Routes
-from mypointbusiness.models import Agency
-from mypointbusiness.models import Mobilitystation
-from mypointbusiness.models import CalendarDates
-from mypointbusiness.models import Trips
-from mypointbusiness.models import HasFacilities
-from mypointbusiness.models import StopTimes
-from mypointbusiness.models import Calendar 
-from mypointbusiness.models import Shapes
-from mypointbusiness.models import ValidateFeedback
-from mypointbusiness.models import GiveFeedback
-from mypointapi.serializer  import AccoutInfoSerializer, ClientSerializer,RegisterSerializer, LoginSerializer,FacilitiesSerializer,FeedbackSerializer,StopsSerializer,ShopSerializer
-from mypointapi.serializer  import ItemSerializer,BusSerializer,RailSerializer,FacilityTypeSerializer,AgencySerializer,RouteSerializer,CalendarDatesSerializer,TripsSerializer
-from mypointapi.serializer  import StopTimesSerializer,CalendarSerializer,ShapesSerializer,FeedbackGivenSerializer,FeedbackValidationSerializer
-from mypointapi.serializer import ClientSerializer
-from mypointapi.serializer import RegisterSerializer
-from mypointapi.serializer import StopsSerializer
-from mypointapi.serializer import AccoutInfoSerializer
-from mypointapi.serializer import FacilitiesSerializer
-from mypointapi.serializer import HasFacilitiesSerializer
 from django.utils import timezone
 
 
@@ -63,10 +26,18 @@ from functools import wraps
 
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 # Create your views here.
-
-
+def method_permission_classes(classes):
+    def decorator(func):
+        def decorated_func(self, *args, **kwargs):
+            self.permission_classes = classes
+            # this call is needed for request permissions
+            self.check_permissions(self.request)
+            return func(self, *args, **kwargs)
+        return decorated_func
+    return decorator
 # Client GET POST DELETE UPDATE 
 
+#TESTS ARE GOOD AccoutInfoAPIViewTest
 
 class AccountInfoView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -75,137 +46,215 @@ class AccountInfoView(APIView):
            client = Client.objects.get(username=usernamefromToken)
            serializer = AccoutInfoSerializer(client)
            return Response(serializer.data)
-      
+
+# TESTS ARE GOOD ClientAPIViewTest
 class ClientView(APIView):
 # ALTERAR : end point perigoso meter a parte 
-
-    def get(self, request, format = None):
-        permission_classes = (IsAdminUser,)
-        clients = Client.objects.all()
-        serializer = ClientSerializer(clients,many = True)
-        return Response(serializer.data) 
-    
     def post(self, request, format = None):
         serializer = RegisterSerializer(data= request.data)
-        if serializer.is_valid():
-            Client.objects.create_user(request.data['username'], email=request.data['email'], 
-            password=request.data['password'], first_name=request.data['first_name'] , last_name=request.data['last_name'])
-            return Response(serializer.data, status = status.HTTP_201_CREATED)
-        return Response(serializer.data, status = status.HTTP_400_BAD_REQUEST)
-    
+        try:
+            if serializer.is_valid():
+                c = Client.objects.create_user(request.data['username'], email=request.data['email'], 
+                password=request.data['password'], first_name=request.data['first_name'] , last_name=request.data['last_name'], is_staff=False)
+                json = serializer.data
+                json['id']=c.id
+                return Response(json, status = status.HTTP_201_CREATED)
+            return Response(serializer.data, status = status.HTTP_400_BAD_REQUEST)
+        except:
+                return Response("ClientView POST error")
+
+        
+    @method_permission_classes((IsAdminUser,))
+    def get(self, request, format = None):
+        try:
+            clients = Client.objects.all()
+            serializer = ClientSerializer(clients,many = True)
+            return Response(serializer.data) 
+        except:
+                return Response("ClientView GET error")
     
 
-
-    
+# TESTS ARE GOOD ClientDetailAPIViewTest
 class ClientDetailedView(APIView):
     permission_classes = (IsAdminUser,)
 
     def get(self, request, pk , format=None):
+        try:
             client = Client.objects.get(pk=pk)
             serializer = AccoutInfoSerializer(client)
             return Response(serializer.data)
-    
+        except:
+            return Response("ClientDetailedView GET error")
 
     def put(self, request, pk, format = None):
-        client = Client.objects.get(pk=pk)
-        serializer = ClientSerializer(client,data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            client = Client.objects.get(pk=pk)
+            serializer = ClientSerializer(client,data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("ClientDetailedView PUT error")
     
     
     def delete (self, request, pk, format = None):
-        client = Client.objects.get(pk=pk)
-        serializer = ClientSerializer(client,data=request.data)
-        client.delete()
-        return Response(status=status.HTTP_202_ACCEPTED)
+        try:
+            client = Client.objects.get(pk=pk)
+            serializer = ClientSerializer(client,data=request.data)
+            client.delete()
+            return Response(status=status.HTTP_204)
+        except:
+            return Response("ClientDetailedView PUT error")
     
 
 
 # Gives all the facilities that can hold transports back as bus stops, rail stations, streetcars...
+# TESTS are GOOD FacilityViewAPIViewTest
 class FacilityView(APIView):
-    def get(self, request, format=None):
-        stops = Stops.objects.all() # Queries all the stops 
-        facilityjson=[]
-        for stop in stops: # Check stops ids
-            stop_id = stop.stop_id         
-            facility_type_arr = []        
-            all_entries = HasFacilities.objects.all() 
-            stopNew = all_entries.filter(facility=stop_id)
-            for newstops in stopNew:
-                if(newstops.facility_type_id == 0):
-                    facility_type_arr.append('Tram, Streetcar, Light rail station')
-                if(newstops.facility_type_id == 33):
-                    facility_type_arr.append('Bus stop')
-                if(newstops.facility_type_id == 22):
-                    facility_type_arr.append('Rail station')
-        
-            json_placeholder={}
-            json_placeholder['stop_name']=stop.stop_name
-            json_placeholder['asset_id']=stop_id
-            json_placeholder['asset_type']=facility_type_arr
-            json_placeholder['latitude']=stop.stop_lat
-            json_placeholder['longitude']=stop.stop_lon
-            facilityjson.append(json_placeholder)
-        carparks = Carpark.objects.all()
-        for carpark in carparks:   
-            carpark_id = carpark.facility_id        
-            facility_type_arr = []        
-            all_entries = HasFacilities.objects.all() 
-            CarParkNew = all_entries.filter(facility=carpark_id)
-            for newcarpark in CarParkNew:
-                if(newcarpark.facility_type_id == 8):
-                    facility_type_arr.append('Car Park')
-            json_placeholder={}
-            json_placeholder['stop_name']='Parking'
-            json_placeholder['asset_id']=carpark_id
-            json_placeholder['asset_type']=facility_type_arr
-            json_placeholder['latitude']=carpark.park_lat
-            json_placeholder['longitude']=carpark.park_lon
-            facilityjson.append(json_placeholder)
-        mstations = Mobilitystation.objects.all()
-        for station in mstations:   
-                station_id = station.facility_id        
-                facility_type_arr = []        
-                all_entries = HasFacilities.objects.all() 
-                stationNew = all_entries.filter(facility=station_id)
-                for newstation in stationNew:
-                    if(newstation.facility_type_id == 13):
-                        facility_type_arr.append('Mobility Station')
-                json_placeholder={}
-                json_placeholder['stop_name']=station.name
-                json_placeholder['asset_id']=station_id
-                json_placeholder['asset_type']=facility_type_arr
-                json_placeholder['latitude']=station.mobility_lat
-                json_placeholder['longitude']=station.mobility_lon
-                facilityjson.append(json_placeholder)
-        buses = Bus.objects.all()
-        for bus in buses:   
-                bus_id = bus.facility_id        
-                facility_type_arr = []        
-                all_entries = HasFacilities.objects.all() 
-                busNew = all_entries.filter(facility=bus_id)
-                for newbus in busNew:
-                    if(newbus.facility_type_id == 3):
-                        facility_type_arr.append('Bus')
-                json_placeholder={}
-                json_placeholder['stop_name']=bus.bus_desc
-                json_placeholder['asset_id']=bus_id
-                json_placeholder['asset_type']=facility_type_arr
-                facilityjson.append(json_placeholder)
-            
-        
 
-        return Response(facilityjson, status=status.HTTP_200_OK)          
-# ALTERAR: este endpoint tem que ter perms - isolar.   
-    def post(self, request, format = None):
-        serializer = FacilitiesSerializer(data= request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status = status.HTTP_201_CREATED)
-        return Response(serializer.data, status = status.HTTP_400_BAD_REQUEST)
+        def get(self, request, format=None):
+            try:
+                stops = Stops.objects.all() # Queries all the stops 
+                facilityjson=[]
+                for stop in stops: # Check stops ids
+                    stop_id = stop.stop_id         
+                    facility_type_arr = []        
+                    all_entries = HasFacilities.objects.all() 
+                    stopNew = all_entries.filter(facility=stop_id)
+                    for newstops in stopNew:
+                        if(newstops.facility_type_id == 0):
+                            facility_type_arr.append('Tram, Streetcar, Light rail station')
+                        if(newstops.facility_type_id == 33):
+                            facility_type_arr.append('Bus stop')
+                        if(newstops.facility_type_id == 22):
+                            facility_type_arr.append('Rail station')
+                
+                    json_placeholder={}
+                    json_placeholder['stop_name']=stop.stop_name
+                    json_placeholder['asset_id']=stop_id
+                    json_placeholder['asset_type']=facility_type_arr
+                    json_placeholder['latitude']=stop.stop_lat
+                    json_placeholder['longitude']=stop.stop_lon
+                    json_placeholder['status']=''
+
+                    facilityjson.append(json_placeholder)
+                carparks = Carpark.objects.all()
+                for carpark in carparks:   
+                    carpark_id = carpark.facility_id        
+                    facility_type_arr = []        
+                    all_entries = HasFacilities.objects.all() 
+                    CarParkNew = all_entries.filter(facility=carpark_id)
+                    for newcarpark in CarParkNew:
+                        if(newcarpark.facility_type_id == 8):
+                            facility_type_arr.append('Car Park')
+                                        
+                    # Calculate the time range for filtering
+                    start_time = timezone.now() - timedelta(hours=1)
+                    end_time = timezone.now()
+
+                    # Calculate the average score within the time range
+                    average_score = Feedback.objects.filter(facility_id=carpark_id, time_action__range=(start_time, end_time)).aggregate(avg_score=Avg('score'))['avg_score']                    
+                    if(average_score == None):
+                        average_score = 'No information'
+
+                    json_placeholder={}
+                    json_placeholder['stop_name']='Parking'
+                    json_placeholder['asset_id']=carpark_id
+                    json_placeholder['asset_type']=facility_type_arr
+                    json_placeholder['latitude']=carpark.park_lat
+                    json_placeholder['longitude']=carpark.park_lon
+                    json_placeholder['status']=average_score
+
+
+                    facilityjson.append(json_placeholder)
+                mstations = Mobilitystation.objects.all()
+                for station in mstations:   
+                        station_id = station.facility_id        
+                        facility_type_arr = []        
+                        all_entries = HasFacilities.objects.all() 
+                        stationNew = all_entries.filter(facility=station_id)
+                        for newstation in stationNew:
+                            if(newstation.facility_type_id == 13):
+                                facility_type_arr.append('Mobility Station')
+                        json_placeholder={}
+                        json_placeholder['stop_name']=station.name
+                        json_placeholder['asset_id']=station_id
+                        json_placeholder['asset_type']=facility_type_arr
+                        json_placeholder['latitude']=station.mobility_lat
+                        json_placeholder['longitude']=station.mobility_lon
+                        facilityjson.append(json_placeholder)
+                buses = Bus.objects.all()
+                for bus in buses:   
+                        bus_id = bus.facility_id        
+                        facility_type_arr = []        
+                        all_entries = HasFacilities.objects.all() 
+                        busNew = all_entries.filter(facility=bus_id)
+                        for newbus in busNew:
+                            if(newbus.facility_type_id == 3):
+                                facility_type_arr.append('Bus')
+                        json_placeholder={}
+                        json_placeholder['stop_name']=bus.bus_desc
+                        json_placeholder['asset_id']=bus_id
+                        json_placeholder['asset_type']=facility_type_arr
+                        facilityjson.append(json_placeholder)
+                    
+                
+
+                return Response(facilityjson, status=status.HTTP_200_OK)
+            except:
+                return Response("During the database acess, an error was found", status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
+
+
+# TESTS ARE GOOD FacilityTypeDetailedAPIViewTest
+class FacilityTypeDetailedView(APIView):
+    permission_classes = (IsAdminUser,)
+    def get(self,request, pk , format = None ):
+        try:
+            facility = Facilitytype.objects.get(facility_type_id=pk)
+            serializer = FacilityTypeSerializer(facility)
+            return Response(serializer.data) 
+        except:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+    def post (self,request, pk , format = None ):
+            serializer = FacilityTypeSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status = status.HTTP_200_OK)
+            else:
+                return Response(serializer.data, status = status.HTTP_400_BAD_REQUEST)
+            
+class FacilityDetailedView(APIView):
     
+
+        permission_classes = (IsAdminUser,)
+        def post(self, request, facilityType , format=None):
+            try:
+                if(facilityType == 'rail'):
+                        facility_id = request.data['facility']
+                        unit_number = request.data['unit_number']
+                        registration_plate = request.data['registration_plate']
+                        bus_desc = request.data['bus_desc']
+                        capacity = request.data['capacity']
+                        standing_capacity = request.data['standing_capacity']
+                        seats = request.data['seats']
+                        facility = Facility.objects.create(facility_id= facility_id)
+                        rail = Rail.objects.create(facility=facility, unit_number=unit_number,
+                                                registration_plate=registration_plate, bus_desc=bus_desc,
+                                                capacity=capacity, standing_capacity=standing_capacity, seats=seats)
+                        new_facility_type = Facilitytype.objects.get(facility_type_id = 2)
+                        HasFacilities.objects.create(facility_type = new_facility_type, facility = facility)
+                        
+                        return Response("Sucess", status= status.HTTP_200_OK)
+
+                else:
+                    return Response("not found", status=status.HTTP_404_NOT_FOUND)  
+
+            except Exception as e:
+                return Response("An error occurred during database access: {}".format(str(e)), status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
 
 
 def CategoriesMetaData(facilityTypeId):
@@ -234,7 +283,7 @@ def CategoriesMetaData(facilityTypeId):
             item['feedback_subcategory'] = data
         return Response(serializer.data, status=status.HTTP_200_OK)
     except:
-        return Response(serializer.data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(serializer.errors, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CategoriesView(APIView):
     def get(self, request, facilityType, format=None):
@@ -260,7 +309,7 @@ class CategoriesView(APIView):
             if(facilityType == 'TramStreetcarLightrail'):
                 result = CategoriesMetaData(0)
                 return result
-
+            return Response("Error on request", status=status.HTTP_400_BAD_REQUEST)
       
 class FeedbackView(APIView):
     # TO IMPLEMENT, CONFIRMATION IF THE USER IS CLOSE TO THE FACILITY
@@ -307,29 +356,6 @@ class FeedbackView(APIView):
             errors = serializerFeedback.errors
             return Response(errors, status = status.HTTP_400_BAD_REQUEST)
 
-class FeedbackstructView(APIView):
-    permission_classes = (IsAdminUser,)
-    def get(self,request,format = None):
-        struct = Feedbackstruct.objects.all()
-        serializer=FeedbackstructSerializer(struct, many = True)
-        return Response(serializer.data)
-    
-class ShopView(APIView):
-    permission_classes = (IsAdminUser,)
-    def get(self,request, format = None ):
-        facilities = Shop.objects.all()
-        serializer = ShopSerializer(facilities,many = True)
-        return Response(serializer.data) 
-
-class ItemView(APIView):
-    permission_classes = (IsAdminUser,)
-    def get(self,request, format = None ):
-        facilities = Item.objects.all()
-        serializer = ItemSerializer(facilities,many = True)
-        return Response(serializer.data) 
-
- 
-            
 class ItemDetailedView(APIView):
     permission_classes = (IsAuthenticated,)
     def get(self,request, pk, format = None ):
@@ -360,8 +386,10 @@ class ItemDetailedView(APIView):
                 value = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
                 order = Orders.objects.create(item=item, user=request.user,quantity=1,order_date=value)
                 c=Client.objects.get(username=request.user.username)
+                # print(c.points)
                 c.points= c.points - item.price
                 c.save()
+                # print(c.points)
                 serializer = OrderSerializer(order)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             else:
@@ -413,7 +441,12 @@ class CarParkFeedbackView(APIView):
                 c.points += 10
                 c.save()
 
-                return Response({'points_added' : '10'}, status = status.HTTP_200_OK)
+                return Response({'points_added' : '10', 'facility' : text_id}, status = status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+        else:
+                return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+
 
 class CarParkFeedbackValidateView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -421,7 +454,6 @@ class CarParkFeedbackValidateView(APIView):
             serializer = FeedbackSerializer(data  = request.data)
             if serializer.is_valid():
                 serializer.save()
-                print(serializer.data)
                 ValidateFeedback.objects.create(feedback_id = serializer.data['feedback_id'], facility_id = request.data['facility'], user_id = request.user.id )
                 c = Client.objects.get(id = request.user.id)
                 c.points += 5 # 5 pontos por Validar um carpark
@@ -431,7 +463,112 @@ class CarParkFeedbackValidateView(APIView):
 
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class BusStopInfoView(APIView):
+        
+    def get(self,request, pk, format = None ):
+        try:
+            busstop = Stops.objects.get(stop_id = pk)  
+            serializer = StopsSerializer(busstop)
+            current_time = datetime.now().time()
+            if serializer.is_valid:
+                rows = StopTimes.objects.filter(stop_id = pk,
+                    arrival_time__gte = current_time).order_by('arrival_time')[:15:1]
+                serializer = StopTimesSerializer(rows, many=True)
+                return Response(serializer.data)      
+            else :
+                return Response(serializer.errors,)      
+        except:
+            return Response(serializer.errors,)
 
+            
+
+
+class FeedbackcatView(APIView):
+    permission_classes = (IsAdminUser,)
+    def get(self,request, format = None ):
+        facilities = Feedbackcat.objects.all()
+        serializer = FeedbackcatSerializer(facilities,many = True)
+        return Response(serializer.data) 
+    
+    def post(self,request, format = None ):
+        serializer = FeedbackcatSerializer(data=request.data, many=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data) 
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class FeedbacksubcatView(APIView):
+    permission_classes = (IsAdminUser,)
+    def get(self,request, format = None ):
+        facilities = Feedbacksubcat.objects.all()
+        serializer = FeedbacksubcatSerializer(facilities,many = True)
+        return Response(serializer.data) 
+    def post(self,request, format = None ):
+        serializer = FeedbacksubcatSerializer(data=request.data, many=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data) 
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class FacilityTypeView(APIView):
+    permission_classes = (IsAdminUser,)
+    def get(self,request, format = None ):
+        facilities = Facilitytype.objects.all()
+        serializer = FacilityTypeSerializer(facilities,many = True)
+        return Response(serializer.data) 
+    def post(self,request, format = None ):
+        serializer = FacilityTypeSerializer(data=request.data, many=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data) 
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class FeedbackstructView(APIView):
+    permission_classes = (IsAdminUser,)
+    def get(self,request,format = None):
+        struct = Feedbackstruct.objects.all()
+        serializer=FeedbackstructSerializer(struct, many = True)
+        return Response(serializer.data)
+    def post(self,request, format = None ):
+        serializer = FeedbackstructSerializer(data=request.data, many=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data) 
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ShopView(APIView):
+    permission_classes = (IsAdminUser,)
+    def get(self,request, format = None ):
+        facilities = Shop.objects.all()
+        serializer = ShopSerializer(facilities,many = True)
+        return Response(serializer.data) 
+    def post(self,request, format = None ):
+        serializer = ShopSerializer(data=request.data, many=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data) 
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ItemView(APIView):
+    permission_classes = (IsAdminUser,)
+    def get(self,request, format = None ):
+        facilities = Item.objects.all()
+        serializer = ItemSerializer(facilities,many = True)
+        return Response(serializer.data) 
+    def post(self,request, format = None ):
+        serializer = ItemSerializer(data=request.data, many=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data) 
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
                 
 class BusView(APIView):
@@ -440,27 +577,72 @@ class BusView(APIView):
         facilities = Bus.objects.all()
         serializer = BusSerializer(facilities,many = True)
         return Response(serializer.data) 
+    
+    def post(self,request, format = None ):
 
+        try:
+            serializer = BusNoIdSerializer(data=request.data, many=True)
+            if serializer.is_valid():
+
+                for rail_data in request.data:
+                    # Create Facility
+                    facility = rail_data['facility']
+                    unitnumber = rail_data['unit_number']
+                    registration_plate = rail_data['registration_plate']
+                    bus_desc = rail_data['bus_desc']
+                    capacity = rail_data['capacity']
+                    standing_capacity = rail_data['standing_capacity']
+                    seats = rail_data['seats']
+                    new_facility = Facility.objects.create(facility_id=facility)
+                    new_rail = Bus.objects.create(facility=new_facility, unit_number=unitnumber, registration_plate=registration_plate,bus_desc=bus_desc, capacity=capacity, standing_capacity=standing_capacity, seats=seats)             
+                    new_has_facilities = HasFacilities.objects.create(facility=new_facility, facility_type_id=3)
+                return Response({'status': 'sucess'}, status=status.HTTP_200_OK)
+
+            else:
+                return Response (serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+                traceback.print_exc()  # Print traceback information to the console
+
+                return Response("An error occurred during database access: {}".format(str(e)), status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
+            
+            
 class RailView(APIView):
     permission_classes = (IsAdminUser,)
     def get(self,request, format = None ):
         facilities = Rail.objects.all()
         serializer = RailSerializer(facilities,many = True)
         return Response(serializer.data) 
+    def post(self,request, format = None ):
+        try:
+            serializer = RailNoIdSerializer(data=request.data, many=True)
+            if serializer.is_valid():
 
-class FacilityTypeView(APIView):
-    permission_classes = (IsAdminUser,)
-    def get(self,request, format = None ):
-        facilities = Facilitytype.objects.all()
-        serializer = FacilityTypeSerializer(facilities,many = True)
-        return Response(serializer.data) 
+                for rail_data in request.data:
+                    # Create Facility
+                    facility = rail_data['facility']
+                    unitnumber = rail_data['unit_number']
+                    registration_plate = rail_data['registration_plate']
+                    bus_desc = rail_data['bus_desc']
+                    capacity = rail_data['capacity']
+                    standing_capacity = rail_data['standing_capacity']
+                    seats = rail_data['seats']
+                    new_facility = Facility.objects.create(facility_id=facility)
+                    new_rail = Rail.objects.create(facility=new_facility, unit_number=unitnumber, registration_plate=registration_plate,bus_desc=bus_desc, capacity=capacity, standing_capacity=standing_capacity, seats=seats)             
+                    new_has_facilities = HasFacilities.objects.create(facility=new_facility, facility_type_id=2)
+                return Response({'status': 'sucess'}, status=status.HTTP_200_OK)
 
+            else:
+                return Response (serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+                return Response("An error occurred during database access: {}".format(str(e)), status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
+            
 class AgencyView(APIView):
     permission_classes = (IsAdminUser,)
     def get(self,request, format = None ):
         facilities = Agency.objects.all()
         serializer = AgencySerializer(facilities,many = True)
         return Response(serializer.data) 
+
     
 class RouteView(APIView):
     permission_classes = (IsAdminUser,)
@@ -468,6 +650,7 @@ class RouteView(APIView):
         facilities = Routes.objects.all()
         serializer = RouteSerializer(facilities,many = True)
         return Response(serializer.data)  
+
     
 class CalendarDatesView(APIView):
     permission_classes = (IsAdminUser,)
@@ -476,12 +659,14 @@ class CalendarDatesView(APIView):
         serializer = CalendarDatesSerializer(facilities,many = True)
         return Response(serializer.data)  
 
+
 class TripView(APIView):
     permission_classes = (IsAdminUser,)
     def get(self,request, format = None ):
         facilities = Trips.objects.all()
         serializer = TripsSerializer(facilities,many = True)
         return Response(serializer.data)  
+
 
 class StopTimesView(APIView):
     permission_classes = (IsAdminUser,)
@@ -490,12 +675,14 @@ class StopTimesView(APIView):
         serializer = StopTimesSerializer(facilities,many = True)
         return Response(serializer.data)  
 
+
 class CalendarView(APIView):
     permission_classes = (IsAdminUser,)
     def get(self,request, format = None ):
         facilities = Calendar.objects.all()
         serializer = CalendarSerializer(facilities,many = True)
         return Response(serializer.data)  
+
 
 class StopsView(APIView):
     permission_classes = (IsAdminUser,)
@@ -504,19 +691,21 @@ class StopsView(APIView):
         serializer = StopsSerializer(facilities,many = True)
         return Response(serializer.data) 
 
+
 class ShapesView(APIView):
     permission_classes = (IsAdminUser,)
     def get(self,request, format = None ):
         facilities = Shapes.objects.all()
         serializer = ShapesSerializer(facilities,many = True)
-        return Response(serializer.data)    
+        return Response(serializer.data)
+     
 
 class FeedbackGivenView(APIView):
     permission_classes = (IsAdminUser,)
     def get(self,request, format = None ):
         facilities = GiveFeedback.objects.all()
         serializer = FeedbackGivenSerializer(facilities,many = True)
-        return Response(serializer.data)    
+        return Response(serializer.data)  
 
 class FeedbackValidationView(APIView):
     permission_classes = (IsAdminUser,)
@@ -524,9 +713,9 @@ class FeedbackValidationView(APIView):
         facilities = ValidateFeedback.objects.all()
         serializer = FeedbackValidationSerializer(facilities,many = True)
         return Response(serializer.data) 
-          
-        
-            
+
+    
+
         
 
         

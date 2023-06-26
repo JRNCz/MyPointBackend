@@ -41,18 +41,22 @@ INSTALLED_APPS = [
     'mypointbusiness',
     'mypointapi',
     'rest_framework',
+    'drf_spectacular'
+    
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES' : [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ]
+        
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1), # change later 
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10), # change later 
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
@@ -127,11 +131,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Lisbon'  
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)

@@ -215,6 +215,7 @@ class AgencyAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs), path("initial_config/", self.initial_mobility_configuration)]
         return my_urls + urls
+
     
     def upload_csv(self,request):
         if request.method == 'POST':
@@ -342,6 +343,8 @@ def export_to_csv(modeladmin, request, queryset, fields, filename):
         writer.writerow(row)
     
     return response
+
+
 
 # Register your models here.
 
@@ -482,6 +485,21 @@ class BusAdmin(admin.ModelAdmin):
 
                 return render(request, "admin/deletefiles.html")
             
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+            
     export_busCSV.short_description = 'Export to CSV'
     actions = [export_busCSV]
 
@@ -500,6 +518,21 @@ class CalendarAdmin(admin.ModelAdmin):
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
     
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     def upload_csv(self,request):
         if request.method == 'POST':
             #print('the request is a post')
@@ -596,6 +629,21 @@ class CalendarDatesAdmin(admin.ModelAdmin):
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
     
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     def upload_csv(self,request):
         if request.method == 'POST':
             #print('the request is a post')
@@ -693,6 +741,21 @@ class CarparkAdmin(admin.ModelAdmin):
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
     
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     def upload_csv(self,request):
         if request.method == 'POST':
             #print('the request is a post')
@@ -814,6 +877,22 @@ class FareAttributesAdmin(admin.ModelAdmin):
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
     
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
+    
     def upload_csv(self,request):
         if request.method == 'POST':
             #print('the request is a post')
@@ -910,6 +989,21 @@ class FareRulesAdmin(admin.ModelAdmin):
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
     
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     def upload_csv(self,request):
         if request.method == 'POST':
             #print('the request is a post')
@@ -1005,6 +1099,22 @@ class FeedInfoAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
+
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     
     def upload_csv(self,request):
         if request.method == 'POST':
@@ -1102,6 +1212,22 @@ class FrequenciesAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
+    
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     
     def upload_csv(self,request):
         if request.method == 'POST':
@@ -1271,6 +1397,22 @@ class PathwaysAdmin(admin.ModelAdmin):
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
     
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
+    
     def upload_csv(self,request):
         if request.method == 'POST':
             #print('the request is a post')
@@ -1355,10 +1497,11 @@ class PathwaysAdmin(admin.ModelAdmin):
     actions = [export_pathwaysCSV]
 
 class RailAdmin(admin.ModelAdmin):
-    list_display = ('route', 'facility', 'agency_id')
+    list_display = ('facility', 'unit_number', 'registration_plate', 'bus_desc', 'capacity', 'standing_capacity', 'seats')
+
 
     def export_railCSV(self, request, queryset):
-        fields = ['route', 'facility', 'agency_id']
+        fields = ['facility', 'unit_number', 'registration_plate', 'bus_desc', 'capacity', 'standing_capacity', 'seats']
         filename = 'rails.csv'
         return export_to_csv(self, request, queryset, fields, filename)
 
@@ -1367,6 +1510,22 @@ class RailAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
+    
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     
     def upload_csv(self,request):
         if request.method == 'POST':
@@ -1465,6 +1624,22 @@ class RoutesAdmin(admin.ModelAdmin):
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
     
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
+    
     def upload_csv(self,request):
         if request.method == 'POST':
             #print('the request is a post')
@@ -1561,6 +1736,22 @@ class ShapesAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
+    
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     
     def upload_csv(self,request):
         if request.method == 'POST':
@@ -1660,6 +1851,22 @@ class StopTimesAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
+
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     
     def upload_csv(self,request):
         if request.method == 'POST':
@@ -1756,6 +1963,22 @@ class StopsAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
+
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     
     def upload_csv(self,request):
         if request.method == 'POST':
@@ -1850,6 +2073,22 @@ class TransfersAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
+    
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     
     def upload_csv(self,request):
         if request.method == 'POST':
@@ -1946,6 +2185,22 @@ class TranslationsAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
+
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     
     def upload_csv(self,request):
         if request.method == 'POST':
@@ -2042,6 +2297,22 @@ class TripsAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         my_urls = [path("upload-csv/", self.upload_csv), path("delete-gtfs/", self.delete_gtfs), path("update-gtfs/", self.update_gtfs)]
         return my_urls + urls
+
+    def initial_mobility_configuration(self,request):
+        if request.method == 'POST':
+            #print('the request is a post')
+            try:
+                FirstTimeDatabaseConfig()
+                return render(request, "admin/sucess.html")            
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return render(request, "admin/error.html") 
+
+
+        if request.method == 'GET':
+
+            return render(request, "admin/deletefiles.html")
+        
     
     def upload_csv(self,request):
         if request.method == 'POST':
@@ -2137,10 +2408,23 @@ class ValidateFeedbackAdmin(admin.ModelAdmin):
     actions = [export_validate_feedbackCSV]
 
 
+class FeedbackAdmin(admin.ModelAdmin):
+    list_display = ('user_lat','user_lon','feedback_category','feedback_subcategory','feedback_id','facility','time_action','score','image_url','text')
+
+    def export_validate_feedbackCSV(self, request, queryset):
+        fields = ['user_lat','user_lon','feedback_category','feedback_subcategory','feedback_id','facility','time_action','score','image_url','text']
+        filename = 'feedbacks.csv'
+        return export_to_csv(self, request, queryset, fields, filename)
+    
+    export_validate_feedbackCSV.short_description = 'Export to CSV'
+    actions = [export_validate_feedbackCSV]
+    
 admin.site.site_header  =  "MyPoint Admin webpage"  
 admin.site.site_title  =  "MyPoint admin"
 admin.site.index_title  =  "Welcome to myPoint's control center!"
+
 admin.site.register(Client, ClientAdmin)
+admin.site.register(Feedback, FeedbackAdmin)
 admin.site.register(Shop, ShopAdmin)
 admin.site.register(Feedbackcat, FeedbackcatAdmin)
 admin.site.register(Feedbackstruct, FeedbackstructAdmin)
@@ -2287,16 +2571,11 @@ def normalizeFile(file,attributes,Table):
         
         # current_directory = os.path.dirname(os.path.abspath(__file__))
         
-        # now =datetime.now()
-        # date_time = now.strftime("%m-%d-%Y_%H-%M-%S")
-        # #print(date_time)
-        # #print(current_directory)
-        # #print(Table._meta.model_name)
-        # #print(type(current_directory))
-        # #print(type(Table._meta.model_name))
-        # filename = Table._meta.model_name+date_time
+        now =datetime.now()
+        date_time = now.strftime("%m-%d-%Y_%H-%M-%S")
 
-        # csvfile = data.to_csv("temporaryfiles/normalizedInputs/"+filename+".txt",index=False, encoding='cp1252' )
+        filename = Table._meta.model_name+date_time
+        csvfile = data.to_csv("temporaryfiles/adminInput/"+filename+".txt",index=False, encoding='utf-8' )
         # print("temporaryfiles/normalizedInputs/"+filename)
         # insert_count = Table.objects.from_csv("temporaryfiles/normalizedInputs/"+filename+".txt")
         # print("{} records inserted".format(insert_count))
@@ -2310,7 +2589,6 @@ def normalizeFile(file,attributes,Table):
 
 def normalizeGTFS(file):
     filename = str(file)
-    print('AAAAAAAA'+filename)
     try:
         if filename == 'agency.txt':
             attributes = agency_attributes

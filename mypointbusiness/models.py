@@ -37,8 +37,8 @@ def insert_has_facilities():
 
 class ClientManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
         return self._create_user(username, email, password, **extra_fields)
 
     def create_superuser(self, username, email, password=None, **extra_fields):
@@ -95,7 +95,7 @@ class Agency(models.Model):
         verbose_name_plural='Agencies'
 
 
-    objects = CopyManager()
+    
 
 
 class Bus(models.Model):
@@ -112,11 +112,11 @@ class Bus(models.Model):
         db_table = 'bus'
         verbose_name_plural='Buses'
 
-    objects = CopyManager()
+    
 
 @receiver(models.signals.post_save, sender=Bus)
 def bus_trigger(sender, instance, created, **kwargs):
-    if created:
+    if created and not instance.facility:
         # Insert into the 'facility' table
         Facility.objects.create(facility_id=instance.facility_id)
 
@@ -138,7 +138,7 @@ class Calendar(models.Model):
     class Meta:
         managed = True
         db_table = 'calendar'
-    objects = CopyManager()
+    
 
 
 class CalendarDates(models.Model):
@@ -150,7 +150,7 @@ class CalendarDates(models.Model):
     class Meta:
         managed = True
         db_table = 'calendar_dates'
-    objects = CopyManager()
+    
 
 
 class Carpark(models.Model):
@@ -160,10 +160,11 @@ class Carpark(models.Model):
     park_lon = models.FloatField()
     parking_time = models.DateTimeField(blank=True, null=True)
 
+
     class Meta:
         managed = True
         db_table = 'carpark'
-    objects = CopyManager()
+    
 
 
 
@@ -177,7 +178,7 @@ class Facility(models.Model):
         db_table = 'facility'
         verbose_name_plural='Facilities'
 
-    objects = CopyManager()
+    
 
 
 class Facilitytype(models.Model):
@@ -189,7 +190,7 @@ class Facilitytype(models.Model):
         db_table = 'facilitytype'
         verbose_name_plural='Facility types'
 
-    objects = CopyManager()
+    
 
 
 class FareAttributes(models.Model):
@@ -205,7 +206,7 @@ class FareAttributes(models.Model):
         db_table = 'fare_attributes'
         verbose_name_plural='Fare attributes'
 
-    objects = CopyManager()
+    
 
 
 class FareRules(models.Model):
@@ -218,7 +219,7 @@ class FareRules(models.Model):
     class Meta:
         managed = True 
         db_table = 'fare_rules'
-    objects = CopyManager()
+    
 
 
 class FeedInfo(models.Model):
@@ -234,7 +235,7 @@ class FeedInfo(models.Model):
     class Meta:
         managed = True
         db_table = 'feed_info'
-    objects = CopyManager()
+    
 
 
 class Feedback(models.Model):
@@ -253,7 +254,7 @@ class Feedback(models.Model):
         managed = True
         db_table = 'feedback'
         unique_together = (('feedback_id', 'facility'),)
-    objects = CopyManager()
+    
 
 
 class Feedbackcat(models.Model):
@@ -267,7 +268,7 @@ class Feedbackcat(models.Model):
     class Meta:
         managed = True
         db_table = 'feedbackcat'
-    objects = CopyManager()
+    
 
 
 class Feedbackstruct(models.Model):
@@ -280,7 +281,7 @@ class Feedbackstruct(models.Model):
         managed = True
         db_table = 'feedbackstruct'
         unique_together = (('facility_type', 'feedback_category', 'feedback_subcategory'),)
-    objects = CopyManager()
+    
 
 
 class Feedbacksubcat(models.Model):
@@ -294,13 +295,13 @@ class Feedbacksubcat(models.Model):
     class Meta:
         managed = True
         db_table = 'feedbacksubcat'
-    objects = CopyManager()
+    
 
 
 class Frequencies(models.Model):
     trip = models.ForeignKey('Trips', models.DO_NOTHING)
-    start_time = models.DurationField()
-    end_time = models.DurationField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
     headway_secs = models.IntegerField()
     exact_times = models.BooleanField(blank=True, null=True)
     frequency_id = models.AutoField(primary_key=True)
@@ -310,7 +311,7 @@ class Frequencies(models.Model):
         db_table = 'frequencies'
         verbose_name_plural='frequencies'
 
-    objects = CopyManager()
+    
 
 
 class GiveFeedback(models.Model):
@@ -322,7 +323,7 @@ class GiveFeedback(models.Model):
     class Meta:
         managed = True
         db_table = 'give_feedback'
-    objects = CopyManager()
+    
 
 
 class HasFacilities(models.Model):
@@ -336,7 +337,7 @@ class HasFacilities(models.Model):
         unique_together = (('facility_type', 'facility'),)
         verbose_name_plural='Has facilities'
 
-    objects = CopyManager()
+    
 
 
 class Item(models.Model):
@@ -351,7 +352,7 @@ class Item(models.Model):
         managed = True
         db_table = 'item'
         unique_together = (('item_id', 'shop'),)
-    objects = CopyManager()
+    
 
 
 class Levels(models.Model):
@@ -364,7 +365,7 @@ class Levels(models.Model):
         db_table = 'levels'
         verbose_name_plural='Levels'
 
-    objects = CopyManager()
+    
 
 
 class Mobilitystation(models.Model):
@@ -376,7 +377,7 @@ class Mobilitystation(models.Model):
     class Meta:
         managed = True
         db_table = 'mobilitystation'
-    objects = CopyManager()
+    
 
 
 class Orders(models.Model):
@@ -391,7 +392,7 @@ class Orders(models.Model):
         db_table = 'orders'
         verbose_name_plural='Orders'
 
-    objects = CopyManager()
+    
     
 @receiver(pre_save, sender=Orders)
 def orders_trigger(sender, instance, **kwargs):
@@ -420,19 +421,31 @@ class Pathways(models.Model):
         db_table = 'pathways'
         verbose_name_plural='Pathways'
 
-    objects = CopyManager()
+    
 
 
 class Rail(models.Model):
-    route = models.ForeignKey('Routes', models.DO_NOTHING, blank=True, null=True)
-    facility = models.OneToOneField(Facility, models.DO_NOTHING, primary_key=True)
-    agency_id = models.TextField(blank=True, null=True)
+    facility = models.OneToOneField('Facility', models.DO_NOTHING, primary_key=True)
+    unit_number = models.TextField(blank=True, null=True)
+    registration_plate = models.TextField(blank=True, null=True)
+    bus_desc = models.TextField(blank=True, null=True)
+    capacity = models.IntegerField(blank=True, null=True)
+    standing_capacity = models.IntegerField(blank=True, null=True)
+    seats = models.IntegerField(blank=True, null=True)
+
 
     class Meta:
         managed = True
         db_table = 'rail'
 
-    objects = CopyManager()
+@receiver(models.signals.post_save, sender=Rail)
+def rail_trigger(sender, instance, created, **kwargs):
+    if created and not instance.facility:
+        # Insert into the 'facility' table
+        Facility.objects.create(facility_id=instance.facility_id)
+
+        # Insert into the 'has_facilities' table
+        HasFacilities.objects.create(facility_id=instance.facility_id, facility_type_id=2)
 
 class Routes(models.Model):
     route_id = models.TextField(primary_key=True)
@@ -450,7 +463,7 @@ class Routes(models.Model):
         db_table = 'routes'
         verbose_name_plural='Routes'
 
-    objects = CopyManager()
+    
 
 
 class Shapes(models.Model):
@@ -466,7 +479,7 @@ class Shapes(models.Model):
         db_table = 'shapes'
         verbose_name_plural='Shapes'
 
-    objects = CopyManager()
+    
 
 
 class Shop(models.Model):
@@ -476,13 +489,13 @@ class Shop(models.Model):
     class Meta:
         managed = True
         db_table = 'shop'
-    objects = CopyManager()
+    
 
 
 class StopTimes(models.Model):
     trip = models.ForeignKey('Trips', models.DO_NOTHING)
-    arrival_time = models.DurationField(blank=True, null=True)
-    departure_time = models.DurationField()
+    arrival_time = models.TimeField(blank=True, null=True)
+    departure_time = models.TimeField()
     stop = models.ForeignKey('Stops', models.DO_NOTHING)
     stop_sequence = models.IntegerField()
     stop_headsign = models.TextField(blank=True, null=True)
@@ -497,7 +510,7 @@ class StopTimes(models.Model):
         db_table = 'stop_times'
         verbose_name_plural='Stop times'
 
-    objects = CopyManager()
+    
 
 
 class Stops(models.Model):
@@ -519,12 +532,11 @@ class Stops(models.Model):
         db_table = 'stops'
         verbose_name_plural='Stops'
 
-    objects = CopyManager()
+    
 
-@receiver(pre_save, sender=Stops)
-def stop_trigger(sender, instance, **kwargs):
-    if not instance.pk:  # Only execute on insert, not on update
-        # Insert into the 'facility' table
+@receiver(models.signals.post_save, sender=Stops)
+def stop_trigger(sender, instance, created, **kwargs):
+    if created and not instance.stop:
         Facility.objects.create(facility_id=instance.stop_id)
         
 
@@ -540,7 +552,7 @@ class Transfers(models.Model):
         db_table = 'transfers'
         verbose_name_plural='transfers'
 
-    objects = CopyManager()
+    
 
 
 class Translations(models.Model):
@@ -558,7 +570,7 @@ class Translations(models.Model):
         verbose_name_plural='translations'
 
 
-    objects = CopyManager()
+    
 
 class Trips(models.Model):
     route = models.ForeignKey(Routes, models.DO_NOTHING)
@@ -576,7 +588,7 @@ class Trips(models.Model):
         managed = True
         db_table = 'trips'
         verbose_name_plural='trips'
-    objects = CopyManager()
+    
 
 
 class ValidateFeedback(models.Model):
@@ -590,4 +602,4 @@ class ValidateFeedback(models.Model):
         managed = True
         db_table = 'validate_feedback'
         unique_together = (('user', 'feedback'),)
-    objects = CopyManager()
+    

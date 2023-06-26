@@ -100,11 +100,23 @@ class BusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bus 
         fields = '__all__'
+        
+class BusNoIdSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bus
+        fields = ['unit_number', 'registration_plate', 'bus_desc', 'capacity', 'standing_capacity', 'seats']
 
 class RailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rail
         fields = '__all__'
+        
+class RailNoIdSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rail
+        fields = ['unit_number', 'registration_plate', 'bus_desc', 'capacity', 'standing_capacity', 'seats']
+
+        
         
 class FacilityTypeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -193,4 +205,3 @@ class CarParkFeedbackSerializer(serializers.ModelSerializer):
         fields = ['user_lon', 'user_lat','feedback_category','feedback_subcategory','time_action','score','text']
         
 
-    

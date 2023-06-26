@@ -1,13 +1,13 @@
 {% extends "admin/base.html" %}
-{% block content %}
-{% csrf_token %}
 
-<h5> Confirm you current action:
-<p>
-<form  method="get">
+{% block content %}
+  <form method="post">
     {% csrf_token %}
 
-  <button type="submit" formmethod="post">Confirm</button>
-</form>
-</p>
+    <h5>Confirm your current action:</h5>
+
+    <p>
+    <button type="submit">Confirm</button>
+    </p>
+  </form>
 {% endblock %}
